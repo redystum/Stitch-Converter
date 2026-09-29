@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StitchGrid Studio — Cross-Stitch Scanned Chart to Pixel Art Converter</title>
+
+  <!-- Icon -->
+  <link rel="icon" type="image/x-icon" href="favicon.ico" />
+  
+  <!-- Description -->
+  <meta name="description" content="Professional web app to convert scanned cross-stitch pattern charts into clean pixel art matrices with 2-point calibration, trimmed-mean color extraction, and palette remapping." />
+  
+  <!-- Modern Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Header Bar -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="3" />
+          <line x1="9" y1="3" x2="9" y2="21" />
+          <line x1="15" y1="3" x2="15" y2="21" />
+          <line x1="3" y1="9" x2="21" y2="9" />
+          <line x1="3" y1="15" x2="21" y2="15" />
+          <circle cx="12" cy="12" r="2" fill="currentColor" />
+        </svg>
+      </div>
+      <div class="brand-text">
+        <h1>StitchGrid <span class="badge-tag">Studio</span></h1>
+        <p class="subtitle">Scanned Chart to Normalized Pixel Art Matrix</p>
+      </div>
+    </div>
+
+    <!-- Center Mode Switcher -->
+    <div class="mode-switcher-container">
+      <div class="segmented-control" id="viewModeGroup">
+        <button type="button" class="seg-btn active" data-mode="grid" id="modeGridBtn" title="View scanned image with calibration grid overlay">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
+          <span>Alignment Grid</span>
+        </button>
+        <button type="button" class="seg-btn" data-mode="pixelart" id="modePixelBtn" title="View clean reconstructed pixel art matrix">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg>
+          <span>Pixel Art</span>
+        </button>
+        <button type="button" class="seg-btn" data-mode="compare" id="modeCompareBtn" title="Compare original scan with pixel art overlay">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20z"/></svg>
+          <span>Split / Compare</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Header Actions -->
+    <div class="header-actions">
+      <button type="button" class="btn btn-secondary btn-sm" id="btnLoadSample" title="Load high-resolution cross-stitch chart demo">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        <span>Demo Chart</span>
+      </button>
+
+      <button type="button" class="btn btn-ghost btn-icon-only" id="btnHelp" title="Keyboard Shortcuts &amp; Guide (?)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Workspace Layout -->
+  <main class="app-layout">
+    <!-- Sidebar Controls -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-scroll">
+
+        <!-- STEP 1: Image Source -->
+        <section class="panel" id="panelImage">
+          <div class="panel-header">
+            <span class="step-num">1</span>
+            <h2>Image Drop &amp; Source</h2>
+          </div>
+          <div class="panel-body">
+            <div class="dropzone" id="dropzone">
+              <input type="file" id="fileInput" accept="image/*" class="file-input-hidden" />
+              <div class="dropzone-content">
+                <div class="drop-icon">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                </div>
+                <p class="drop-title"><strong>Drag &amp; drop chart</strong> or <span class="browse-link">browse</span></p>
+                <p class="drop-sub">PNG, JPG, WebP supported &bull; Paste from clipboard with Ctrl+V</p>
+              </div>
+            </div>
+
+            <div class="image-info-bar" id="imageInfoBar" style="display: none;">
+              <div class="img-badge" id="imageNameBadge">chart.jpg</div>
+              <div class="img-dim" id="imageDimBadge">0 &times; 0 px</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- STEP 2: 2-Point Calibration -->
+        <section class="panel" id="panelCalibration">
+          <div class="panel-header">
+            <span class="step-num">2</span>
+            <h2>2-Point Calibration</h2>
+            <span class="badge status-pill" id="calibStatusBadge">Ready</span>
+          </div>
+          <div class="panel-body">
+            <!-- Calibration Instructions Banner -->
+            <div class="prompt-banner" id="calibrationBanner">
+              <div class="banner-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              </div>
+              <div class="banner-text" id="calibrationPromptText">
+                Click <strong>"Start Calibration"</strong> then click top-left intersection <code>(0, 0)</code>, followed by bottom-right intersection <code>(max col, max row)</code>.
+              </div>
+            </div>
+
+            <!-- Grid Dimensions -->
+            <div class="grid-2col">
+              <div class="form-group">
+                <label for="inputCols">Columns (Max X)</label>
+                <div class="number-input-wrapper">
+                  <input type="number" id="inputCols" value="70" min="1" max="1000" step="1" />
+                  <span class="unit">cols</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="inputRows">Rows (Max Y)</label>
+                <div class="number-input-wrapper">
+                  <input type="number" id="inputRows" value="60" min="1" max="1000" step="1" />
+                  <span class="unit">rows</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Calibration Action Buttons -->
+            <div class="button-row">
+              <button type="button" class="btn btn-primary" id="btnStartCalibrate">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="3" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="21"/><line x1="3" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="21" y2="12"/></svg>
+                <span id="btnStartCalibrateText">Calibrate (2 Points)</span>
+              </button>
+              <button type="button" class="btn btn-ghost" id="btnResetCalibrate" title="Cancel/Reset points">
+                Reset
+              </button>
+            </div>
+
+            <!-- Derived & Modifiable Values Accordion/Section -->
+            <div class="derived-parameters-box">
+              <div class="box-title">Derived Grid Parameters (Editable)</div>
+              
+              <div class="grid-2col">
+                <div class="form-group">
+                  <label for="cellW">Cell Width (px)</label>
+                  <div class="number-input-wrapper">
+                    <input type="number" id="cellW" value="11.35" step="0.05" min="0.1" />
+                    <span class="unit">px</span>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="cellH">Cell Height (px)</label>
+                  <div class="number-input-wrapper">
+                    <input type="number" id="cellH" value="11.35" step="0.05" min="0.1" />
+                    <span class="unit">px</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="grid-2col">
+                <div class="form-group">
+                  <label for="offsetX">Offset X (Origin)</label>
+                  <div class="number-input-wrapper">
+                    <input type="number" id="offsetX" value="75.0" step="0.25" />
+                    <span class="unit">px</span>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="offsetY">Offset Y (Origin)</label>
+                  <div class="number-input-wrapper">
+                    <input type="number" id="offsetY" value="88.0" step="0.25" />
+                    <span class="unit">px</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- STEP 3: Fine-Tuning & Grid Styling -->
+        <section class="panel" id="panelFineTuning">
+          <div class="panel-header">
+            <span class="step-num">3</span>
+            <h2>Fine-Tuning Overlay</h2>
+          </div>
+          <div class="panel-body">
+            <div class="stepper-controls">
+              <div class="stepper-row">
+                <span class="stepper-label">Offset (Position):</span>
+                <div class="dpad-container">
+                  <button type="button" class="dpad-btn" id="btnShiftUp" title="Shift Grid Up (Arrow Up)">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+                  </button>
+                  <div class="dpad-mid">
+                    <button type="button" class="dpad-btn" id="btnShiftLeft" title="Shift Grid Left (Arrow Left)">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                    </button>
+                    <button type="button" class="dpad-btn center-btn" id="btnZeroOffset" title="Reset offsets to 0">0</button>
+                    <button type="button" class="dpad-btn" id="btnShiftRight" title="Shift Grid Right (Arrow Right)">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                    </button>
+                  </div>
+                  <button type="button" class="dpad-btn" id="btnShiftDown" title="Shift Grid Down (Arrow Down)">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Micro Scale controls -->
+              <div class="stepper-row">
+                <span class="stepper-label">Scale (Shift+Arrows):</span>
+                <div class="scale-btn-group">
+                  <button type="button" class="btn btn-secondary btn-xs" id="btnScaleWMinus" title="Narrow Width (Shift + Left)">W -</button>
+                  <button type="button" class="btn btn-secondary btn-xs" id="btnScaleWPlus" title="Widen Width (Shift + Right)">W +</button>
+                  <button type="button" class="btn btn-secondary btn-xs" id="btnScaleHMinus" title="Shorten Height (Shift + Up)">H -</button>
+                  <button type="button" class="btn btn-secondary btn-xs" id="btnScaleHPlus" title="Lengthen Height (Shift + Down)">H +</button>
+                </div>
+              </div>
+
+              <div class="step-size-selector">
+                <span class="sub-label">Tuning Step:</span>
+                <div class="segmented-control mini" id="stepSizeGroup">
+                  <button type="button" class="seg-btn mini active" data-step="0.25">0.25px</button>
+                  <button type="button" class="seg-btn mini" data-step="0.5">0.5px</button>
+                  <button type="button" class="seg-btn mini" data-step="1.0">1.0px</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Overlay Appearance -->
+            <div class="appearance-row">
+              <div class="color-picker-item">
+                <label>Grid Color</label>
+                <div class="palette-swatches-inline">
+                  <button type="button" class="color-dot active" style="--c: #ff0055;" data-color="rgba(255, 0, 85, 0.75)" title="Fluorescent Pink"></button>
+                  <button type="button" class="color-dot" style="--c: #00f0ff;" data-color="rgba(0, 240, 255, 0.75)" title="Electric Cyan"></button>
+                  <button type="button" class="color-dot" style="--c: #10b981;" data-color="rgba(16, 185, 129, 0.8)" title="Emerald Green"></button>
+                  <button type="button" class="color-dot" style="--c: #ffb703;" data-color="rgba(255, 183, 3, 0.8)" title="Amber Yellow"></button>
+                  <button type="button" class="color-dot" style="--c: #ffffff;" data-color="rgba(255, 255, 255, 0.8)" title="White"></button>
+                </div>
+              </div>
+              <div class="form-group checkbox-group">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="chkMajorLines" checked />
+                  <span class="slider"></span>
+                  <span class="switch-label">Highlight 10th Lines</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- STEP 4: Color Extraction & Clustering -->
+        <section class="panel" id="panelClustering">
+          <div class="panel-header">
+            <span class="step-num">4</span>
+            <h2>Color Extraction &amp; Clustering</h2>
+          </div>
+          <div class="panel-body">
+            <div class="slider-control">
+              <div class="slider-header">
+                <label for="sampleRatio">Trimmed Mean Sample Area</label>
+                <span class="slider-val" id="sampleRatioVal">Middle 60%</span>
+              </div>
+              <input type="range" id="sampleRatio" min="30" max="90" value="60" step="5" />
+              <p class="field-hint">Samples middle region of each cell to exclude outer grid lines.</p>
+            </div>
+
+            <div class="slider-control">
+              <div class="slider-header">
+                <label for="darkDiscardRatio">Discard Darkest Pixels (Symbols)</label>
+                <span class="slider-val" id="darkDiscardVal">30%</span>
+              </div>
+              <input type="range" id="darkDiscardRatio" min="0" max="60" value="30" step="5" />
+              <p class="field-hint">Filters printed black chart symbols (X, +, &bull;) and markings.</p>
+            </div>
+
+            <div class="slider-control">
+              <div class="slider-header">
+                <label for="colorTolerance">Cluster Tolerance (&Delta;E)</label>
+                <span class="slider-val" id="colorToleranceVal">&le; 20</span>
+              </div>
+              <input type="range" id="colorTolerance" min="5" max="60" value="20" step="1" />
+              <p class="field-hint">Euclidean RGB distance threshold to merge similar stitch colors.</p>
+            </div>
+
+            <button type="button" class="btn btn-primary btn-glow btn-block" id="btnProcessGrid">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              <span>Process Grid &amp; Cluster Colors</span>
+            </button>
+
+            <!-- Processing Progress Bar -->
+            <div class="progress-container" id="progressContainer" style="display: none;">
+              <div class="progress-bar" id="progressBar"></div>
+              <span class="progress-text" id="progressText">Analyzing cells...</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- STEP 5: Palette Remap Screen -->
+        <section class="panel" id="panelPalette" style="display: none;">
+          <div class="panel-header">
+            <span class="step-num">5</span>
+            <h2>Palette Remap Screen</h2>
+            <span class="badge" id="clusterCountBadge">0 Colors</span>
+          </div>
+          <div class="panel-body">
+            <!-- Palette Toolbar -->
+            <div class="palette-tools">
+              <div class="tool-btn-group">
+                <button type="button" class="btn btn-secondary btn-xs active" id="toolPointer" title="Inspect / Select Cluster">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l7 18 3-7 7-3L3 3z"/></svg>
+                  <span>Select</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-xs" id="toolBrush" title="Paintbrush: paint active cluster on click/drag">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.37 2.63L14 7l3 3 4.37-4.37a2.12 2.12 0 10-3-3z"/><path d="M9 12l-5 5v4h4l5-5"/></svg>
+                  <span>Paint</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-xs" id="toolEraser" title="Eraser: mark cells as background/empty">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 20H7L3 16C2 15 2 13 3 12L13 2c1-1 3-1 4 0l4 4c1 1 1 3 0 4l-7 7"/></svg>
+                  <span>Eraser</span>
+                </button>
+              </div>
+
+              <button type="button" class="btn btn-ghost btn-xs" id="btnAutoBackground" title="Auto-detect largest cluster and mark as canvas background">
+                Auto-Background
+              </button>
+            </div>
+
+            <p class="field-hint" style="margin-top: 4px;">Hover swatch to highlight cells on canvas. Click color box to replace.</p>
+
+            <!-- Dynamic Clusters List -->
+            <div class="cluster-scroll-container">
+              <div class="cluster-list" id="clusterList">
+                <!-- Injected via JavaScript -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- STEP 6: Export -->
+        <section class="panel" id="panelExport" style="display: none;">
+          <div class="panel-header">
+            <span class="step-num">6</span>
+            <h2>Export Normalized Matrix</h2>
+          </div>
+          <div class="panel-body">
+            <div class="form-group">
+              <label for="exportScale">Output Scale Factor</label>
+              <select id="exportScale" class="custom-select">
+                <option value="1">1:1 Native Matrix (1px / cell)</option>
+                <option value="4">4&times; Upscaled (Crisp Pixel Art)</option>
+                <option value="8" selected>8&times; Upscaled (Recommended)</option>
+                <option value="16">16&times; High-Res (Presentation)</option>
+                <option value="24">24&times; Print Quality</option>
+              </select>
+            </div>
+
+            <div class="form-group checkbox-group">
+              <label class="toggle-switch">
+                <input type="checkbox" id="chkExportGrid" />
+                <span class="slider"></span>
+                <span class="switch-label">Include subtle grid lines on export</span>
+              </label>
+            </div>
+
+            <div class="form-group checkbox-group">
+              <label class="toggle-switch">
+                <input type="checkbox" id="chkTransparentBg" checked />
+                <span class="slider"></span>
+                <span class="switch-label">Transparent empty/background cells</span>
+              </label>
+            </div>
+
+            <div class="export-actions">
+              <button type="button" class="btn btn-success btn-block" id="btnExportPng">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <span>Export PNG Image</span>
+              </button>
+
+              <div class="btn-group-2">
+                <button type="button" class="btn btn-secondary btn-sm" id="btnCopyClipboard" title="Copy PNG to clipboard">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                  <span>Copy Image</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" id="btnExportJson" title="Export 2D matrix array as JSON">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                  <span>Export JSON</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </aside>
+
+    <!-- Canvas Central Viewport -->
+    <section class="canvas-viewport" id="viewport">
+      <!-- Floating Viewport HUD Controls -->
+      <div class="canvas-hud">
+        <div class="hud-group">
+          <button type="button" class="hud-btn" id="btnZoomOut" title="Zoom Out (-)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <span class="zoom-display" id="zoomLevelText">100%</span>
+          <button type="button" class="hud-btn" id="btnZoomIn" title="Zoom In (+)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <button type="button" class="hud-btn" id="btnZoomFit" title="Fit to Screen">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+          </button>
+        </div>
+
+        <div class="hud-separator"></div>
+
+        <div class="hud-group">
+          <button type="button" class="hud-btn" id="btnTogglePan" title="Pan Navigation (Hold Space + Drag)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0"/><path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>
+          </button>
+        </div>
+
+        <!-- Compare Opacity Slider (visible in compare mode) -->
+        <div class="hud-group compare-control" id="compareControl" style="display: none;">
+          <span class="hud-label">Overlay Fade</span>
+          <input type="range" id="compareOpacity" min="0" max="100" value="50" class="slider-mini" />
+        </div>
+
+        <!-- Hover Cell Inspector Badge -->
+        <div class="hud-badge cell-inspector" id="cellInspector" style="display: none;">
+          <span class="inspector-dot" id="inspectorDot"></span>
+          <span id="inspectorCoords">Col: 0, Row: 0</span>
+          <span class="inspector-hex" id="inspectorHex">#000000</span>
+        </div>
+      </div>
+
+      <!-- Welcome Overlay / Empty State -->
+      <div class="canvas-empty-state" id="emptyState">
+        <div class="empty-card">
+          <div class="empty-icon-wrap">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          </div>
+          <h3>Ready to Convert Your Stitch Chart</h3>
+          <p>Drag and drop any scanned cross-stitch pattern here, browse from your computer, or test immediately with our demo pattern.</p>
+          <div class="empty-actions">
+            <button type="button" class="btn btn-primary" id="btnEmptyBrowse">Browse Image</button>
+            <button type="button" class="btn btn-secondary" id="btnEmptySample">Load Demo Floral Pattern</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Interactive Canvas Layer Stack -->
+      <div class="canvas-scroll-wrapper" id="canvasWrapper">
+        <canvas id="mainCanvas"></canvas>
+      </div>
+
+      <!-- Interactive Floating Magnifier Loupe for 2-Point Calibration -->
+      <div class="magnifier-loupe" id="magnifierLoupe">
+        <canvas id="loupeCanvas" width="130" height="130"></canvas>
+        <div class="loupe-reticle"></div>
+        <div class="loupe-coord" id="loupeCoord">X: 0, Y: 0</div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Help & Shortcuts Dialog Modal -->
+  <dialog class="modal-dialog" id="shortcutsDialog">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>Keyboard Shortcuts &amp; Tips</h3>
+        <button type="button" class="modal-close" id="btnCloseModal">&times;</button>
+      </div>
+      <div class="modal-content">
+        <div class="shortcut-list">
+          <div class="shortcut-item">
+            <div class="keys"><kbd>&larr;</kbd><kbd>&rarr;</kbd><kbd>&uarr;</kbd><kbd>&darr;</kbd></div>
+            <div class="desc">Shift grid offset (X/Y) for alignment</div>
+          </div>
+          <div class="shortcut-item">
+            <div class="keys"><kbd>Shift</kbd> + <kbd>&larr;</kbd><kbd>&rarr;</kbd></div>
+            <div class="desc">Fine-scale Cell Width (expand / contract)</div>
+          </div>
+          <div class="shortcut-item">
+            <div class="keys"><kbd>Shift</kbd> + <kbd>&uarr;</kbd><kbd>&darr;</kbd></div>
+            <div class="desc">Fine-scale Cell Height (expand / contract)</div>
+          </div>
+          <div class="shortcut-item">
+            <div class="keys"><kbd>Space</kbd> + <kbd>Drag</kbd></div>
+            <div class="desc">Pan around large scanned image</div>
+          </div>
+          <div class="shortcut-item">
+            <div class="keys"><kbd>Mouse Wheel</kbd></div>
+            <div class="desc">Zoom in / Zoom out centered on cursor</div>
+          </div>
+          <div class="shortcut-item">
+            <div class="keys"><kbd>Ctrl</kbd> + <kbd>V</kbd></div>
+            <div class="desc">Paste image directly from clipboard</div>
+          </div>
+          <div class="shortcut-item">
+            <div class="keys"><kbd>1</kbd> / <kbd>2</kbd> / <kbd>3</kbd></div>
+            <div class="desc">Switch view: Grid / Pixel Art / Compare</div>
+          </div>
+          <div class="shortcut-item">
+            <div class="keys"><kbd>?</kbd></div>
+            <div class="desc">Toggle this shortcuts cheat sheet</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Notification Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
